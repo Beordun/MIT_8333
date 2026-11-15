@@ -511,6 +511,9 @@ export default function HomePage() {
           style={{ color: "var(--on-surface-variant-color)", fontSize: "var(--font-size-sm)" }}
         >
           <p>MivaFix · Official Campus Maintenance Platform, MIVA Open University · © 2026</p>
+          <Link href="/api-docs" className="inline-flex min-h-[44px] items-center font-medium underline">
+            REST API documentation
+          </Link>
         </div>
       </footer>
     </div>
