@@ -1,0 +1,36 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# Next.js build output
+/.next/
+/out/
+/build
+
+# Environment & secrets (NEVER commit real credentials)
+.env
+.env.*
+!.env.example
+
+# Keys & certificates
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+
+# Local databases & dumps
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+
+# Misc & OS
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+

@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  STUDENT_STAFF
+  MAINTENANCE_OFFICER
+  ADMIN
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RequestStatus {
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum OtpType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+/// Entity 1: Role — Defines RBAC personas for the university service desk.
+model Role {
+  id          String   @id @default(cuid())
+  name        RoleName @unique
+  description String
+  users       User[]
+  createdAt   DateTime @default(now())
+}
+
+/// Entity 2: User — Students, Staff, Maintenance Officers, and Administrators.
+model User {
+  id                  String            @id @default(cuid())
+  fullName            String
+  email               String            @unique
+  passwordHash        String
+  department          String
+  emailVerified       Boolean           @default(false)
+  failedLoginAttempts Int               @default(0)
+  lockedUntil         DateTime?
+  tokenVersion        Int               @default(0)
+  roleId              String
+  role                Role              @relation(fields: [roleId], references: [id])
+  submittedRequests   ServiceRequest[]  @relation("RequesterRequests")
+  officerAssignments  Assignment[]      @relation("OfficerAssignments")
+  adminAssignments    Assignment[]      @relation("AdminAssignments")
+  statusUpdates       StatusUpdate[]
+  otps                VerificationOtp[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([roleId])
+}
+
+/// Entity 3: RequestCategory — Fault classifications with target SLA hours.
+model RequestCategory {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String
+  slaHours    Int              @default(24)
+  requests    ServiceRequest[]
+  createdAt   DateTime         @default(now())
+}
+
+/// Entity 4: ServiceRequest — Core maintenance ticket submitted by students/staff.
+model ServiceRequest {
+  id            String          @id @default(cuid())
+  ticketNumber  String          @unique
+  title         String
+  description   String
+  location      String
+  priority      Priority        @default(MEDIUM)
+  status        RequestStatus   @default(PENDING)
+  evidenceUrl   String?
+  requesterId   String
+  requester     User            @relation("RequesterRequests", fields: [requesterId], references: [id])
+  categoryId    String
+  category      RequestCategory @relation(fields: [categoryId], references: [id])
+  assignments   Assignment[]
+  statusUpdates StatusUpdate[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([requesterId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([priority])
+}
+
+/// Entity 5: Assignment — Resolves M:N dispatch between Requests and Maintenance Officers.
+model Assignment {
+  id           String         @id @default(cuid())
+  requestId    String
+  request      ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  officerId    String
+  officer      User           @relation("OfficerAssignments", fields: [officerId], references: [id])
+  assignedById String
+  assignedBy   User           @relation("AdminAssignments", fields: [assignedById], references: [id])
+  notes        String?
+  assignedAt   DateTime       @default(now())
+
+  @@index([requestId])
+  @@index([officerId])
+}
+
+/// Entity 6: StatusUpdate — Immutable audit trail of every ticket state transition.
+model StatusUpdate {
+  id          String         @id @default(cuid())
+  requestId   String
+  request     ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  updatedById String
+  updatedBy   User           @relation(fields: [updatedById], references: [id])
+  oldStatus   RequestStatus?
+  newStatus   RequestStatus
+  comment     String
+  createdAt   DateTime       @default(now())
+
+  @@index([requestId])
+  @@index([updatedById])
+}
+
+/// Entity 7: VerificationOtp — Single-use 6-digit OTPs (10-minute expiry) for email verification and password reset.
+model VerificationOtp {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      OtpType
+  codeHash  String
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([userId, type])
+}

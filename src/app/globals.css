@@ -1,0 +1,14 @@
+@import "../../design/design-tokens.css";
+@import "tailwindcss";
+
+@layer base {
+  html,
+  body {
+    font-family: var(--font-family-sans);
+    background-color: var(--background-color);
+    color: var(--on-background-color);
+    line-height: var(--line-height-normal);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
